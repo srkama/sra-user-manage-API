@@ -1,0 +1,11 @@
+{
+  "name": "serverless-user-manage-app",
+  "version": "1.0.0",
+  "description": "serveless approach to CURD operations user",
+  "main": "createUser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kamalakannan",
+  "license": "ISC"
+}

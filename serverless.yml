@@ -1,0 +1,130 @@
+service: user-manage
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:state, "dev"} # dev | qa | test | prod
+  region: ${opt:region, "ap-southeast-1"}
+functions:
+  createUser:
+    handler: createUser.handler
+    role: UserDynamoDBTableCreateAccessRole
+    events:
+      - http:
+          path: users
+          method: POST
+          cors: true
+    environment:
+      TABLE_NAME: ${self:custom.UserDynamoDbTableName}
+  getUser:
+    handler: getUser.handler
+    role: UserDynamoDBTableReadAccessRole
+    events:
+      - http:
+          path: users
+          method: GET
+          cors: true
+      - http:
+          path: users/{id}
+          method: GET
+          cors: true
+    environment:
+      TABLE_NAME: ${self:custom.UserDynamoDbTableName}
+  updateUser:
+    handler: updateUser.handler
+    role: UserDynamoDBTableUpdateAccessRole
+    events:
+      - http:
+          path: users/{id}
+          method: POST
+          cors: true
+    environment:
+      TABLE_NAME: ${self:custom.UserDynamoDbTableName}
+custom:
+  UserDynamoDbTableName: ${self:service}-users-table-${self:provider.stage}
+resources:
+  Resources: 
+    UserDynamoDBTable: 
+      Type: AWS::DynamoDB::Table
+      Properties: 
+        AttributeDefinitions: 
+          - AttributeName: "userId"
+            AttributeType: "S"
+        KeySchema: 
+          - AttributeName: "userId"
+            KeyType: "HASH"
+        BillingMode: "PAY_PER_REQUEST"
+        TableName: ${self:custom.UserDynamoDbTableName}
+    UserDynamoDBTableReadAccessRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /${self:custom.UserDynamoDbTableName}/ReadAccess/
+        RoleName: ${self:custom.UserDynamoDbTableName}-ReadAccess
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: ${self:custom.UserDynamoDbTableName}-ReadAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - dynamodb:Scan
+                    - dynamodb:GetItem
+                    - dynamodb:Query
+                  Resource: 
+                    Fn::GetAtt: [UserDynamoDBTable, Arn]
+    UserDynamoDBTableCreateAccessRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /${self:custom.UserDynamoDbTableName}/CreateAccess/
+        RoleName: ${self:custom.UserDynamoDbTableName}-CreateAccess
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: ${self:custom.UserDynamoDbTableName}-CreateAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - dynamodb:PutItem
+                  Resource: 
+                    Fn::GetAtt: [UserDynamoDBTable, Arn]
+    UserDynamoDBTableUpdateAccessRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /${self:custom.UserDynamoDbTableName}/UpdateAccess/
+        RoleName: ${self:custom.UserDynamoDbTableName}-UpdateAccess
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: ${self:custom.UserDynamoDbTableName}-UpdateAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - dynamodb:UpdateItem
+                  Resource: 
+                    Fn::GetAtt: [UserDynamoDBTable, Arn]
+
+
+
